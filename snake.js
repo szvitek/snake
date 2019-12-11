@@ -2,12 +2,12 @@
 // todo: landing page, with start button 🔘
 // todo: end screen with win/loose, 🏆
 // todo: show score (eaten apples) 🍎
-// todo:  use vue.js to make life easier managing landing page/game/options/score/end screens
+// todo: use vue.js to make life easier managing landing page/game/options/score/end screens
 // todo: turn app into pwa for offline play 📱
-// version: 0.2
+// version: 0.3
 
 let score = 0;
-const size = 300;
+const size = 150;
 const scale = 10;
 let speed = 350;
 const directions = {
@@ -25,15 +25,69 @@ canvas.width = size;
 canvas.height = size;
 context.scale(10, 10);
 
-// todo: refactor to generateApple function, better spawn position logic
-let apple = [
-  Math.floor((Math.random() * size) / scale),
-  Math.floor((Math.random() * size) / scale)
-];
+let allCellsMap = {};
+for (let i = 0; i < size / scale; i++) {
+  allCellsMap[i] = [];
+  for (let j = 0; j < size / scale; j++) {
+    allCellsMap[i].push(j);
+  }
+}
+
+// done: refactor to generateApple function, better spawn position logic
+let apple;
 const snake = [
-  [11, 14],
-  [10, 14]
+  [7, 7],
+  [6, 7]
 ];
+generateApple();
+
+/*
+  💩💩💩💩
+  couldn't have a better idea, not sure how efficient it is. tested on a 4*4 sized map and it worked fine
+  
+  explanation:
+  0, generate a hashmap of all field coordinates (outside of this function for performance imprvements)
+  1, clone the hashmap
+  2, remove the fields where there is a snake on it so we get all those cells that are empty
+  3, if there is no empty y on that x value, remove from hashmap
+  4, get a random x from free fields, and then get a random y from that x coordinate and generate a new apple
+  5, check if we win
+*/
+function generateApple() {
+  const allCellsMapCopy = JSON.parse(JSON.stringify(allCellsMap)); // 1
+  const freeCellsMap = snake.reduce((sum, current) => {
+    //2
+    const [x, y] = current;
+    sum[x] = sum[x].filter(val => val !== y);
+    return sum;
+  }, allCellsMapCopy);
+
+  // 3, remove empty arrays
+  Object.entries(freeCellsMap).forEach(([x, ys]) => {
+    if (ys.length === 0) {
+      delete freeCellsMap[x];
+    }
+  });
+
+  // 4
+  const freeCells = Object.entries(freeCellsMap);
+  if (!freeCells.length) {
+    //5
+    clearInterval(intervalId);
+    alert("you win!");
+  }
+  const randomEntryIndex = Math.floor(Math.random() * freeCells.length); // get a random entries index
+  const randomEntry = freeCells[randomEntryIndex];
+  const appleX = Number(randomEntry[0]); // get the x of the random entry, this will be the apple's x coordinate
+
+  const yLength = randomEntry[1].length; // get the y array's length
+  const randomYIndex = Math.floor(Math.random() * yLength); // get a random y's index
+  const appleY = randomEntry[1][randomYIndex]; // get the value of the random y, this will be the apple's y coordinate
+
+  apple = [appleX, appleY];
+}
+
+let = didChangeDirection = false;
 
 async function update() {
   context.clearRect(0, 0, 30, 30);
@@ -58,10 +112,7 @@ async function update() {
   // eat the apple
   if (snake[0][0] === apple[0] && snake[0][1] === apple[1]) {
     score++;
-    apple = [
-      Math.floor((Math.random() * size) / scale),
-      Math.floor((Math.random() * size) / scale)
-    ];
+    generateApple();
   } else {
     snake.pop();
   }
@@ -70,7 +121,7 @@ async function update() {
   const [h, ...tail] = snake;
   const didCollideSelf = tail.some(t => t[0] === h[0] && t[1] === h[1]);
 
-  // end
+  // game over
   if (didCollideSelf || didCollideWall) {
     const restart = await confirm("Play again");
     if (restart) {
@@ -81,6 +132,7 @@ async function update() {
   }
 
   draw();
+  didChangeDirection = false;
 }
 
 function draw() {
@@ -95,19 +147,25 @@ function draw() {
 
 // todo: increase speed automatically
 // like count eaten apples, and create a new interval with faster timeout
-const intervalId = setInterval(update, 300);
+const intervalId = setInterval(update, speed);
 
 document.body.onkeydown = function(e) {
-  if (e.key === "ArrowDown" && direction !== directions.UP) {
-    direction = directions.DOWN;
-  }
-  if (e.key === "ArrowUp" && direction !== directions.DOWN) {
-    direction = directions.UP;
-  }
-  if (e.key === "ArrowLeft" && direction !== directions.RIGHT) {
-    direction = directions.LEFT;
-  }
-  if (e.key === "ArrowRight" && direction !== directions.LEFT) {
-    direction = directions.RIGHT;
+  if (!didChangeDirection) {
+    if (e.key === "ArrowDown" && direction !== directions.UP) {
+      direction = directions.DOWN;
+      didChangeDirection = true;
+    }
+    if (e.key === "ArrowUp" && direction !== directions.DOWN) {
+      direction = directions.UP;
+      didChangeDirection = true;
+    }
+    if (e.key === "ArrowLeft" && direction !== directions.RIGHT) {
+      direction = directions.LEFT;
+      didChangeDirection = true;
+    }
+    if (e.key === "ArrowRight" && direction !== directions.LEFT) {
+      direction = directions.RIGHT;
+      didChangeDirection = true;
+    }
   }
 };
