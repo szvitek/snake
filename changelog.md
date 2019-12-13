@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4
+
+- setup fields added
+- start/pause button implemented
+- display score
+- don't need to reload the page after the game's ended
+
 ## 0.3
 
 - canvas scaled up, but halved the squares inside

@@ -1,15 +1,15 @@
 // todo: refactor to a snake class 🐍
-// todo: landing page, with start button 🔘
-// todo: end screen with win/loose, 🏆
-// todo: show score (eaten apples) 🍎
+// todo: snake needs a visual upgrade, when it grow it's just not clear how it moves...
 // todo: use vue.js to make life easier managing landing page/game/options/score/end screens
 // todo: turn app into pwa for offline play 📱
-// version: 0.3
+// version: 0.4
 
+let intervalId;
+let isGameRunning = false;
 let score = 0;
-const size = 150;
+const defaultSize = 12;
+const defaultSpeed = 700;
 const scale = 10;
-let speed = 350;
 const directions = {
   UP: [0, -1],
   DOWN: [0, 1],
@@ -17,33 +17,30 @@ const directions = {
   RIGHT: [1, 0]
 };
 
+document.querySelector("#size").value = defaultSize;
+document.querySelector("#speed").value = defaultSpeed;
+
+let size = defaultSize;
+let speed = 1100 - defaultSpeed;
+
 let direction = directions.RIGHT;
+
+const outputScore = document.querySelector("#score");
 
 const canvas = document.querySelector("canvas");
 const context = canvas.getContext("2d");
-canvas.width = size;
-canvas.height = size;
-context.scale(10, 10);
+canvas.width = size * scale;
+canvas.height = size * scale;
+context.scale(scale, scale);
 
-let allCellsMap = {};
-for (let i = 0; i < size / scale; i++) {
-  allCellsMap[i] = [];
-  for (let j = 0; j < size / scale; j++) {
-    allCellsMap[i].push(j);
-  }
-}
+let allCellsMap;
 
-// done: refactor to generateApple function, better spawn position logic
 let apple;
-const snake = [
-  [7, 7],
-  [6, 7]
-];
-generateApple();
+let snake;
 
 /*
   💩💩💩💩
-  couldn't have a better idea, not sure how efficient it is. tested on a 4*4 sized map and it worked fine
+  didn't have a better idea, not sure how efficient it is. tested on a 4*4 sized map and it worked fine
   
   explanation:
   0, generate a hashmap of all field coordinates (outside of this function for performance imprvements)
@@ -73,7 +70,8 @@ function generateApple() {
   const freeCells = Object.entries(freeCellsMap);
   if (!freeCells.length) {
     //5
-    clearInterval(intervalId);
+    stop();
+    startBtn.style.display = "none";
     alert("you win!");
   }
   const randomEntryIndex = Math.floor(Math.random() * freeCells.length); // get a random entries index
@@ -90,7 +88,7 @@ function generateApple() {
 let = didChangeDirection = false;
 
 async function update() {
-  context.clearRect(0, 0, 30, 30);
+  context.clearRect(0, 0, canvas.width, canvas.width);
   const head = snake[0];
 
   const newHeadX = head[0] + direction[0];
@@ -112,6 +110,7 @@ async function update() {
   // eat the apple
   if (snake[0][0] === apple[0] && snake[0][1] === apple[1]) {
     score++;
+    outputScore.innerHTML = score;
     generateApple();
   } else {
     snake.pop();
@@ -123,11 +122,11 @@ async function update() {
 
   // game over
   if (didCollideSelf || didCollideWall) {
+    startBtn.style.display = "none";
     const restart = await confirm("Play again");
+    stop();
     if (restart) {
-      location.reload();
-    } else {
-      clearInterval(intervalId);
+      updateAndrestart();
     }
   }
 
@@ -144,10 +143,6 @@ function draw() {
   context.fillStyle = "red";
   context.fillRect(apple[0] + 0.1, apple[1] + 0.1, 0.8, 0.8);
 }
-
-// todo: increase speed automatically
-// like count eaten apples, and create a new interval with faster timeout
-const intervalId = setInterval(update, speed);
 
 document.body.onkeydown = function(e) {
   if (!didChangeDirection) {
@@ -169,3 +164,65 @@ document.body.onkeydown = function(e) {
     }
   }
 };
+
+function start() {
+  isGameRunning = true;
+  intervalId = setInterval(update, speed);
+}
+
+function stop() {
+  isGameRunning = false;
+  clearInterval(intervalId);
+}
+
+// start/pause events
+const startBtn = document.querySelector("#start-btn");
+startBtn.addEventListener("click", () => {
+  if (!isGameRunning) {
+    start();
+  } else {
+    stop();
+  }
+});
+
+function recalculateAllCellsMap() {
+  allCellsMap = {};
+  for (let i = 0; i < size / scale; i++) {
+    allCellsMap[i] = [];
+    for (let j = 0; j < size / scale; j++) {
+      allCellsMap[i].push(j);
+    }
+  }
+}
+
+function updateAndrestart(e) {
+  stop();
+  startBtn.style.display = "inline-block";
+  if (e) {
+    e.preventDefault();
+  }
+  direction = directions.RIGHT;
+  let inputSize = document.querySelector("#size").value || defaultSize;
+  if (inputSize % 2 !== 0) {
+    inputSize++;
+  }
+  document.querySelector("#size").value = inputSize;
+  size = inputSize * scale;
+  speed = 1100 - (document.querySelector("#speed").value || defaultSpeed);
+  canvas.width = size;
+  canvas.height = size;
+  context.scale(10, 10);
+  score = 0;
+  outputScore.innerHTML = score;
+  snake = [
+    [Math.floor(size / 10 / 2) - 1, Math.floor(size / 10 / 2)],
+    [Math.floor(size / 10 / 2) - 2, Math.floor(size / 10 / 2)]
+  ];
+  recalculateAllCellsMap();
+  generateApple();
+  start();
+}
+
+document
+  .querySelector("#update-settings")
+  .addEventListener("click", updateAndrestart);

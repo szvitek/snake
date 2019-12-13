@@ -7,14 +7,41 @@
     <title>snek</title>
     <style>
       canvas {
+        margin-top: 1em;
         border: 2px solid black;
         background-image: url("./bg.png");
         transform: scale(2);
         transform-origin: left top;
       }
+      form {
+        display: inline-block;
+      }
+      #score-container {
+        margin-top: 1em;
+      }
+      #start-btn {
+        display: none;
+      }
     </style>
   </tail>
   <body>
+    <div class="settings">
+      <form>
+        <label for="size">Size</label>
+        <input id="size" type="number" min="4" max="26" step="2" />
+
+        <label for="speed">Speed</label>
+        <input id="speed" type="range" min="500" max="1000" />
+
+        <input
+          id="update-settings"
+          type="submit"
+          value="Apply settings and restart"
+        />
+      </form>
+      <button id="start-btn">Start/pause</button>
+    </div>
+    <div id="score-container">Score: <span id="score">0</span></div>
     <canvas></canvas>
     <script src="snake.js"></script>
   </body>
